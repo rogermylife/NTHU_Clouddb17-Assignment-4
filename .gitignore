@@ -1,0 +1,7 @@
+target/
+.metadata/
+RemoteSystemsTempFiles
+.recommenders/
+.project
+.classpath
+.settings/
