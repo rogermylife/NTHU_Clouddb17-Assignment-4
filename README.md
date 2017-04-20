@@ -13,7 +13,7 @@ To complete this assignment, you need to
 
 ## Conservative Locking
 
-In the conservative locking approach, we lock the read/write sets of a given transaction at once (atomically) **before execution**. Since the locks are retained in the beginning, there are no interleaving for conflicting txs and can thus prevent deadlocks. It performs well only if there are no/very few long txs. To know which objects to lock before execution, we have to collect the read/write sets in the stored procedures.
+In the conservative locking approach, we lock the read/write sets of a given transaction at once (atomically) **before execution**. Since the locks are retained in the beginning, there are no interleaving for conflicting txs and can thus prevent deadlocks. Another deterministic rule about txs acquiring locks that we want you to follow is tx with higher tx number should always acquire the same lock **after** the tx with lower tx number. It performs well only if there are no/very few long txs. To know which objects to lock before execution, we have to collect the read/write sets in the stored procedures.
 
 In this assignment, you are asked to implement the conservative concurrency manager that extends `ConcurrencyMgr`. You can trace the other concurrency managers like `SerializableConcurrencyMgr` as a reference to implement your own. Note that, you should not modify the `ConcurrencyMgr` interface. You can simply override and leave some methods blank if you think they are no longer necessary in the conservative implementation.
 
