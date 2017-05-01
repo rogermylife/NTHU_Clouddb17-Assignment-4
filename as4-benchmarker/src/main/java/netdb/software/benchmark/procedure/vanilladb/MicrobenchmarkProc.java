@@ -1,5 +1,6 @@
 package netdb.software.benchmark.procedure.vanilladb;
 
+import java.io.Console;
 import java.sql.Connection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -8,9 +9,12 @@ import org.vanilladb.core.query.algebra.Plan;
 import org.vanilladb.core.query.algebra.Scan;
 import org.vanilladb.core.remote.storedprocedure.SpResultSet;
 import org.vanilladb.core.server.VanillaDb;
+import org.vanilladb.core.sql.BigIntConstant;
 import org.vanilladb.core.sql.storedprocedure.StoredProcedure;
+import org.vanilladb.core.storage.tx.T3RecordKey;
 import org.vanilladb.core.storage.tx.Transaction;
 import org.vanilladb.core.storage.tx.concurrency.LockAbortException;
+import org.vanilladb.core.storage.tx.concurrency.T3ConservativeConcurrencyMgr;
 
 import netdb.software.benchmark.procedure.MicrobenchmarkTxnParamHelper;
 
@@ -47,6 +51,21 @@ public class MicrobenchmarkProc implements StoredProcedure {
 
 	protected void executeSql() {
 		
+		//tx.ConcurrencyMgr().slock()
+		//tx.ConcurrencyMgr().xlock()
+		
+		for (int i=0;i< paramHelper.getReadCount(); i++)
+		{
+			boolean re1 = ((T3ConservativeConcurrencyMgr)tx.concurrencyMgr()).readT3RecordKey(new T3RecordKey("item","i_id",new BigIntConstant(paramHelper.getItemId(i))));
+			boolean re2 = ((T3ConservativeConcurrencyMgr)tx.concurrencyMgr()).modifyT3RecordKey(new T3RecordKey("item","i_id",new BigIntConstant(paramHelper.getItemId(i))));
+			if(!re1 || !re2)
+			{
+				((T3ConservativeConcurrencyMgr)tx.concurrencyMgr()).releaseLocks();
+				i=-1;
+				logger.warning("GG conflict");
+				continue;
+			}
+		}
 		for (int i = 0; i < paramHelper.getReadCount(); i++) {
 			String name = "";
 

@@ -86,6 +86,20 @@ class LockTable {
 			throw new LockAbortException();
 		}
 	}
+	
+	synchronized boolean T3sLock(Object obj, long txNum) {
+		if (hasSLock(obj, txNum))
+			return true;
+		if(!sLockable(obj, txNum))
+			return false;
+		try {
+			prepareLockers(obj).sLockers.add(txNum);
+			return true;
+		} catch (Exception e) {
+			throw new LockAbortException();	
+		}
+		
+	}
 
 	/**
 	 * Grants an xlock on the specified item. If any conflict lock exists when
@@ -111,6 +125,20 @@ class LockTable {
 				throw new LockAbortException("deadlock detected");
 			prepareLockers(obj).xLocker = txNum;
 		} catch (InterruptedException e) {
+			throw new LockAbortException();
+		}
+	}
+	
+	synchronized boolean T3xLock(Object obj, long txNum) {
+		if (hasXLock(obj, txNum))
+			return true;
+
+		try {
+			if (!xLockable(obj, txNum))
+				return false;
+			prepareLockers(obj).xLocker = txNum;
+			return true;
+		} catch (Exception e) {
 			throw new LockAbortException();
 		}
 	}
