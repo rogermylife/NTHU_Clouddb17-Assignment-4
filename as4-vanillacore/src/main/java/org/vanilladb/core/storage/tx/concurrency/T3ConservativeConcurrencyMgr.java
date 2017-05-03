@@ -1,9 +1,13 @@
 package org.vanilladb.core.storage.tx.concurrency;
 
+import java.util.logging.Logger;
+
 import org.vanilladb.core.storage.file.BlockId;
 import org.vanilladb.core.storage.record.RecordId;
 import org.vanilladb.core.storage.tx.T3RecordKey;
 import org.vanilladb.core.storage.tx.Transaction;
+
+
 
 public class T3ConservativeConcurrencyMgr extends ConcurrencyMgr {
 
@@ -14,11 +18,17 @@ public class T3ConservativeConcurrencyMgr extends ConcurrencyMgr {
 	@Override
 	public void onTxCommit(Transaction tx) {
 		lockTbl.releaseAll(txNum, false);
+		leaveT3LockedList();
+		Logger logger = Logger.getLogger("XD");
+		logger.warning(tx.getTransactionNumber()+" onTxCommit");
 	}
 
 	@Override
 	public void onTxRollback(Transaction tx) {
 		lockTbl.releaseAll(txNum, false);
+		leaveT3LockedList();
+		Logger logger = Logger.getLogger("XD");
+		logger.warning(tx.getTransactionNumber()+" onTxRollback");
 	}
 
 	@Override
@@ -80,19 +90,29 @@ public class T3ConservativeConcurrencyMgr extends ConcurrencyMgr {
 	
 	public boolean readT3RecordKey(T3RecordKey record)
 	{
-		lockTbl.T3sLock(record, txNum);
-		return true;
+		return lockTbl.T3sLock(record, txNum);
+		
 	}
 	
 	public boolean modifyT3RecordKey(T3RecordKey record)
 	{
-		lockTbl.T3xLock(record, txNum);
-		return true;
+		return lockTbl.T3xLock(record, txNum);
+		
 	}
 	
 	public void releaseLocks()
 	{
 		lockTbl.releaseAll(txNum, false);
+	}
+	
+	public void registerT3LockedList()
+	{
+		lockTbl.registerT3LockedList(txNum);
+	}
+	
+	public void leaveT3LockedList()
+	{
+		lockTbl.leaveT3LockedList(txNum);
 	}
 	
 }

@@ -53,19 +53,45 @@ public class MicrobenchmarkProc implements StoredProcedure {
 		
 		//tx.ConcurrencyMgr().slock()
 		//tx.ConcurrencyMgr().xlock()
-		
-		for (int i=0;i< paramHelper.getReadCount(); i++)
+		T3ConservativeConcurrencyMgr ccMgr = ((T3ConservativeConcurrencyMgr)tx.concurrencyMgr());
+		boolean permission = false;
+		while(!permission)
 		{
-			boolean re1 = ((T3ConservativeConcurrencyMgr)tx.concurrencyMgr()).readT3RecordKey(new T3RecordKey("item","i_id",new BigIntConstant(paramHelper.getItemId(i))));
-			boolean re2 = ((T3ConservativeConcurrencyMgr)tx.concurrencyMgr()).modifyT3RecordKey(new T3RecordKey("item","i_id",new BigIntConstant(paramHelper.getItemId(i))));
-			if(!re1 || !re2)
+			for (int i=0;i< paramHelper.getReadCount(); i++)
 			{
-				((T3ConservativeConcurrencyMgr)tx.concurrencyMgr()).releaseLocks();
-				i=-1;
-				logger.warning("GG conflict");
-				continue;
+				//logger.info("info 001");
+				boolean re1 = ccMgr.readT3RecordKey(new T3RecordKey("item","i_id",new BigIntConstant(paramHelper.getItemId(i))));
+				boolean re2 = ccMgr.modifyT3RecordKey(new T3RecordKey("item","i_id",new BigIntConstant(paramHelper.getItemId(i))));
+				if(!re1 || !re2)
+				{
+					ccMgr.releaseLocks();
+					i=-1;
+					//logger.warning("GG conflict");
+					continue;
+				}
+			}
+			ccMgr.registerT3LockedList();
+			int i;
+			//logger.info(tx.getTransactionNumber()+"ÅçÃÒ¤¤");
+			for (i=0;i< paramHelper.getReadCount(); i++)
+			{
+				boolean re1 = ccMgr.readT3RecordKey(new T3RecordKey("item","i_id",new BigIntConstant(paramHelper.getItemId(i))));
+				boolean re2 = ccMgr.modifyT3RecordKey(new T3RecordKey("item","i_id",new BigIntConstant(paramHelper.getItemId(i))));
+				if(!re1 || !re2)
+				{
+					
+					ccMgr.leaveT3LockedList();
+					ccMgr.releaseLocks();
+					break;
+				}
+			}
+			if(i == paramHelper.getReadCount())
+			{
+				//logger.info(tx.getTransactionNumber()+"  permission ");
+				permission=true;
 			}
 		}
+		//logger.info(tx.getTransactionNumber()+" DO IT");
 		for (int i = 0; i < paramHelper.getReadCount(); i++) {
 			String name = "";
 
