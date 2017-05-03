@@ -19,16 +19,16 @@ public class T3ConservativeConcurrencyMgr extends ConcurrencyMgr {
 	public void onTxCommit(Transaction tx) {
 		lockTbl.releaseAll(txNum, false);
 		leaveT3LockedList();
-		Logger logger = Logger.getLogger("XD");
-		logger.warning(tx.getTransactionNumber()+" onTxCommit");
+		//Logger logger = Logger.getLogger("XD");
+		//logger.warning(tx.getTransactionNumber()+" onTxCommit");
 	}
 
 	@Override
 	public void onTxRollback(Transaction tx) {
 		lockTbl.releaseAll(txNum, false);
 		leaveT3LockedList();
-		Logger logger = Logger.getLogger("XD");
-		logger.warning(tx.getTransactionNumber()+" onTxRollback");
+		//Logger logger = Logger.getLogger("XD");
+		//logger.warning(tx.getTransactionNumber()+" onTxRollback");
 	}
 
 	@Override
@@ -90,13 +90,28 @@ public class T3ConservativeConcurrencyMgr extends ConcurrencyMgr {
 	
 	public boolean readT3RecordKey(T3RecordKey record)
 	{
-		return lockTbl.T3sLock(record, txNum);
+		
+		int res = lockTbl.T3sLock(record, txNum);
+		while(res==2)
+		{
+			res = lockTbl.T3sLock(record, txNum);
+		}
+		if(res==1)
+			return true;
+		return false;
 		
 	}
 	
 	public boolean modifyT3RecordKey(T3RecordKey record)
 	{
-		return lockTbl.T3xLock(record, txNum);
+		int res = lockTbl.T3xLock(record, txNum);
+		while(res==2)
+		{
+			res = lockTbl.T3xLock(record, txNum);
+		}
+		if(res==1)
+			return true;
+		return false;
 		
 	}
 	

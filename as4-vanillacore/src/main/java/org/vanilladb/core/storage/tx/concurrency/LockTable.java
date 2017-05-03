@@ -61,23 +61,23 @@ class LockTable {
 	
 	public void registerT3LockedList(long txNum)
 	{
-		if(!T3LockedList.contains(txNum))
+		if(T3LockedList.contains(txNum))
 			return;
 		T3LockedList.add(txNum);
 		//logger.warning(txNum + "in T3LockedList");
-		Iterator<Long> it = T3LockedList.iterator();
-        while (it.hasNext()) {
-        	logger.warning("contain  "+it.next());
-        }
-        logger.warning("registerT3LockedList  ");
+//		Iterator<Long> it = T3LockedList.iterator();
+//        while (it.hasNext()) {
+//        	logger.warning("contain  "+it.next());
+//        }
+//        logger.warning("registerT3LockedList  ");
 	}
 	
 	public void leaveT3LockedList(long txNum)
 	{
-		Iterator<Long> it = T3LockedList.iterator();
-        while (it.hasNext()) {
-        	logger.warning("contain  "+it.next());
-        }
+//		Iterator<Long> it = T3LockedList.iterator();
+//        while (it.hasNext()) {
+//        	logger.warning("contain  "+it.next());
+//        }
 
 		if(!T3LockedList.contains(txNum))
 		{
@@ -121,27 +121,27 @@ class LockTable {
 		}
 	}
 	
-	synchronized boolean T3sLock(Object obj, long txNum) {
+	synchronized int T3sLock(Object obj, long txNum) {
 		//logger.warning(txNum+"in slock for" + obj.hashCode());
 		if (hasSLock(obj, txNum))
-			return true;
-		logger.warning(txNum + " T3sLock");
-		while(!sLockable(obj, txNum))
+			return 1;
+		//logger.warning(txNum + " T3sLock");
+		if(!sLockable(obj, txNum))
 		{
 			
 			long conflictTxNum = lockerMap.get(obj).xLocker; 
-			logger.warning(txNum + " while " +conflictTxNum);
+			//logger.warning(txNum + " while " +conflictTxNum);
 			if(conflictTxNum<txNum)
-				return false;
+				return 0;
 			if(T3LockedList.contains(conflictTxNum))
-				continue;
+				return 2;
 		    releaseAll(conflictTxNum,false);  
 			
 		}
 		//logger.info(txNum+" slockable for"+obj.hashCode());
 		try {
 			prepareLockers(obj).sLockers.add(txNum);
-			return true;
+			return 1;
 		} catch (Exception e) {
 			throw new LockAbortException();	
 		}
@@ -176,31 +176,32 @@ class LockTable {
 		}
 	}
 	
-	synchronized boolean T3xLock(Object obj, long txNum) {
+	synchronized int T3xLock(Object obj, long txNum) {
 		//logger.warning(txNum+"in xlock for" + obj.hashCode());
 		if (hasXLock(obj, txNum))
-			return true;
+			return 1;
 
 		try {
-			while (!xLockable(obj, txNum))
+			if (!xLockable(obj, txNum))
 			{
 				ArrayList<Long> releaseList = new ArrayList<Long>();
 				long xlockConflictTxNum = lockerMap.get(obj).xLocker;
 				
-				if(xlockConflictTxNum!=-1&&(xlockConflictTxNum<txNum||T3LockedList.contains(xlockConflictTxNum)))
-					return false;
-				if(xlockConflictTxNum!=-1)
-					releaseList.add(xlockConflictTxNum);
+				if(xlockConflictTxNum!=-1&&(xlockConflictTxNum<txNum))
+					return 0;
+				if(xlockConflictTxNum!=-1&&!T3LockedList.contains(xlockConflictTxNum))
+					return 2;
+					//releaseList.add(xlockConflictTxNum);
 				
 				
 				Iterator<Long> iterator = lockerMap.get(obj).sLockers.iterator();
 				while (iterator.hasNext()){
 					long slockConflictTxNum =iterator.next();
 					if(slockConflictTxNum<txNum)
-						return false;
+						return 0;
 					if(T3LockedList.contains(slockConflictTxNum))
-						continue;
-					System.out.println("Value: "+iterator.next() + " ");  
+						return 2;
+						//continue;  
 					releaseList.add(iterator.next());
 				}
 				for (Long num : releaseList) {
@@ -209,7 +210,7 @@ class LockTable {
 			}
 			//logger.info(txNum+" xlockable for"+obj.hashCode());
 			prepareLockers(obj).xLocker = txNum;
-			return true;
+			return 1;
 		} catch (Exception e) {
 			throw new LockAbortException();
 		}
